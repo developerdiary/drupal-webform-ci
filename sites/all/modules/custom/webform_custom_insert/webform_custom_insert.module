@@ -1,0 +1,127 @@
+<?php
+
+function webform_custom_insert_menu(){
+
+	$items = array();
+
+	$items['examples/form-example'] = array( //this creates a URL that will call this form at "examples/form-example"
+		'title' => 'Example Form', //page title
+		'description' => 'A form to mess around with.',
+		'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+		'page arguments' => array('webform_custom_insert_form'), //put the name of the form here
+		'access arguments' => array('access content'),
+    	'type' => MENU_CALLBACK,
+	);
+
+	return $items;
+}
+
+function webform_custom_insert_form($form, &$form_state){	
+
+	$form['name'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Name'),
+		'#collapsible' => TRUE,
+		'#collapsed' => FALSE,
+	);
+
+	$form['email'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Email'),
+		'#collapsible' => TRUE,
+		'#collapsed' => FALSE,
+	);
+
+	$form['message'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Message'),
+		'#collapsible' => TRUE,
+		'#collapsed' => FALSE,
+	);
+
+	/*
+	$form['name']['first'] = array(
+		'#type' => 'textfield',
+		'#title' => t('First name'),
+		'#required' => TRUE,
+		'#description' => "Please enter your first name.",
+		'#size' => 20,
+		'#maxlength' => 20,
+	);
+	$form['name']['last'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Last name'),
+		'#required' => TRUE,
+	);
+
+	$form['year_of_birth'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Year of birth'),
+		'#description' => 'Format is "YYYY"',
+	);  */
+
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Submit',
+		'#attributes' => array('onclick' => 'return false;'),
+	);
+
+
+	drupal_add_js('jQuery(document).ready(function () {
+			jQuery("#edit-submit").click(function() {								
+				jQuery("#form-example-form").submit();				
+			});
+		});',
+    	array('type' => 'inline', 'scope' => 'footer', 'weight' => 5)
+  	);
+
+	return $form;
+}
+
+
+/*
+function webform_custom_insert_form_validate($form, &$form_state){
+
+	$year_of_birth = $form_state['values']['year_of_birth'];
+	if ($year_of_birth && ($year_of_birth < 1900 || $year_of_birth > 2000)) {
+		form_set_error('year_of_birth', t('Enter a year between 1900 and 2000.'));
+	}
+
+
+}
+*/
+function webform_custom_insert_form_submit($form, &$form_state){
+
+	// Get the node ID of the created Webform and load the node.
+	$nid = 1;
+	$node = node_load($nid);
+	$uid = 1;
+
+	// Include files.
+	module_load_include('inc', 'webform', 'webform.module');  
+	module_load_include('inc', 'webform', 'includes/webform.submissions');
+
+	// Prepare the data for submission.
+	$data = array(
+	  'name' => $form_state['values']['name'],
+	  'email' => $form_state['values']['email'],
+	  'message' => $form_state['values']['message'],
+	);
+
+	// Arrange $data in the way Webform expects it.
+	$data = _webform_client_form_submit_flatten($node, $data);
+	$data = webform_submission_data($node, $data);
+
+	$submission = (object) array(
+	  'nid' => $nid,
+	  'uid' => $uid,
+	  'submitted' => REQUEST_TIME,
+	  'remote_addr' => ip_address(),
+	  'is_draft' => FALSE,
+	  'data' => $data,
+	);
+
+	webform_submission_insert($node, $submission);
+
+}
